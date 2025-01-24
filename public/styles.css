@@ -52,23 +52,32 @@ h1, h2 {
     border-radius: 5px;
     overflow: hidden;
     background-color: #f8f8f8;
+    touch-action: none;
+    min-height: 100px;
 }
 
-.preview-container img.main-image {
+.main-image {
     width: 100%;
     height: auto;
     display: block;
 }
 
-.watermark-overlay {
-    position: absolute;
-    pointer-events: none; /* Allow clicks to pass through to the draggable container */
-}
-
 .watermark-container {
     position: absolute;
-    cursor: move;
+    cursor: grab;
     user-select: none;
+    touch-action: none;
+    z-index: 10;
+}
+
+.watermark-container:active {
+    cursor: grabbing;
+}
+
+.watermark-overlay {
+    pointer-events: none;
+    display: block;
+    max-width: 100%;
 }
 
 .watermark-settings {

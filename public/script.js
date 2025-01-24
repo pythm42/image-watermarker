@@ -97,7 +97,7 @@ function updateWatermarkSize(event) {
         const newSize = parseInt(event.target.value);
         watermarkSettings.size = newSize;
         document.getElementById('sizeValue').textContent = `${newSize}px`;
-        
+
         // Update size in all image settings
         Object.keys(imageSettings).forEach(filename => {
             const metadata = imageMetadata[filename];
@@ -107,6 +107,7 @@ function updateWatermarkSize(event) {
                 imageSettings[filename].size = newSize;
                 imageSettings[filename].scaledSize = Math.round(newSize * scale);
             }
+            // imageSettings[filename].size = newSize;
         });
         
         updatePreview();
@@ -176,6 +177,7 @@ function updatePreview() {
                 watermark.className = 'watermark-overlay';
                 watermark.style.width = `${settings.size}px`;
                 watermark.style.opacity = settings.opacity;
+                watermark.style.pointerEvents = 'none';
                 
                 watermarkContainer.appendChild(watermark);
                 makeDraggable(watermarkContainer, image.filename);
@@ -198,20 +200,35 @@ function makeDraggable(element, imageFilename) {
     let initialTop;
     
     element.addEventListener('mousedown', onMouseDown);
+    element.addEventListener('touchstart', onTouchStart, { passive: false });
+
+    function onTouchStart(e) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        startDrag(touch.clientX, touch.clientY);
+        
+        document.addEventListener('touchmove', onTouchMove, { passive: false });
+        document.addEventListener('touchend', onTouchEnd);
+    }
+
+    function onTouchMove(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        const touch = e.touches[0];
+        moveElement(touch.clientX, touch.clientY);
+    }
+
+    function onTouchEnd() {
+        endDrag();
+        document.removeEventListener('touchmove', onTouchMove);
+        document.removeEventListener('touchend', onTouchEnd);
+    }
 
     function onMouseDown(e) {
         e.preventDefault();
-        isDragging = true;
+        e.stopPropagation();
+        startDrag(e.clientX, e.clientY);
         
-        // Get initial cursor position
-        startX = e.clientX;
-        startY = e.clientY;
-        
-        // Get initial element position
-        initialLeft = element.offsetLeft;
-        initialTop = element.offsetTop;
-        
-        // Add temporary event listeners
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
     }
@@ -219,29 +236,41 @@ function makeDraggable(element, imageFilename) {
     function onMouseMove(e) {
         if (!isDragging) return;
         e.preventDefault();
+        moveElement(e.clientX, e.clientY);
+    }
 
-        // Calculate the distance moved
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
+    function onMouseUp() {
+        endDrag();
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+    }
+
+    function startDrag(clientX, clientY) {
+        isDragging = true;
+        startX = clientX;
+        startY = clientY;
+        initialLeft = element.offsetLeft;
+        initialTop = element.offsetTop;
+        element.style.cursor = 'grabbing';
+    }
+
+    function moveElement(clientX, clientY) {
+        const dx = clientX - startX;
+        const dy = clientY - startY;
         
-        // Calculate new position
         let newLeft = initialLeft + dx;
         let newTop = initialTop + dy;
         
-        // Get container boundaries
         const container = element.parentElement;
         const maxLeft = container.clientWidth - element.offsetWidth;
         const maxTop = container.clientHeight - element.offsetHeight;
         
-        // Constrain to container bounds
         newLeft = Math.max(0, Math.min(newLeft, maxLeft));
         newTop = Math.max(0, Math.min(newTop, maxTop));
         
-        // Update element position
         element.style.left = `${newLeft}px`;
         element.style.top = `${newTop}px`;
         
-        // Calculate and update scaled positions
         const img = container.querySelector('img[data-filename]');
         const scale = imageMetadata[imageFilename].naturalWidth / img.offsetWidth;
         
@@ -251,10 +280,9 @@ function makeDraggable(element, imageFilename) {
         imageSettings[imageFilename].scaledY = Math.round(newTop * scale);
     }
 
-    function onMouseUp() {
+    function endDrag() {
         isDragging = false;
-        document.removeEventListener('mousemove', onMouseMove);
-        document.removeEventListener('mouseup', onMouseUp);
+        element.style.cursor = 'grab';
     }
 }
 
