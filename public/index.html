@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Watermarker</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Add React and ReactDOM -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Image Watermarker</h1>
+        
+        <div class="upload-section">
+            <div class="upload-box">
+                <h2>Upload Images</h2>
+                <input type="file" id="imageUpload" multiple accept="image/*">
+                <div id="imagePreview" class="preview-grid"></div>
+            </div>
+
+            <div class="upload-box">
+                <h2>Upload Watermark</h2>
+                <input type="file" id="watermarkUpload" accept="image/*">
+                <div id="watermarkPreview"></div>
+            </div>
+        </div>
+
+        <div class="watermark-settings">
+            <h2>Watermark Settings</h2>
+            <div class="settings-grid">
+                <div>
+                    <label for="size">Size:</label>
+                    <input type="range" id="size" min="10" max="500" value="100">
+                    <span id="sizeValue">100px</span>
+                </div>
+                <div>
+                    <label for="opacity">Opacity:</label>
+                    <input type="range" id="opacity" min="0" max="100" value="50">
+                    <span id="opacityValue">50%</span>
+                </div>
+                <button id="lockSettings">Lock Settings</button>
+            </div>
+        </div>
+
+        <div class="preview-section">
+            <h2>Preview & Adjust</h2>
+            <div id="adjustmentPreview" class="preview-grid"></div>
+        </div>
+
+        <button id="downloadAll" class="download-button">Download All Images</button>
+    </div>
+    
+    <!-- Add the ScaledPreviewContainer component first -->
+    <script src="components/ScaledPreviewContainer.js"></script>
+    <!-- Then add the main script -->
+    <script src="script.js"></script>
+</body>
+</html>
