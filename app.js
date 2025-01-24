@@ -9,7 +9,8 @@ const app = express();
 const port = 3000;
 
 // Middleware
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static('public'));
 app.use('/uploads', express.static('uploads'));
 
@@ -30,7 +31,12 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({ storage });
+const upload = multer({ 
+    storage,
+    limits: { 
+        fileSize: 50 * 1024 * 1024 // 50 MB file size limit
+    }
+});
 
 app.post('/upload-images', upload.array('images'), (req, res) => {
     try {
@@ -69,16 +75,27 @@ app.post('/process-images', async (req, res) => {
             return res.status(400).json({ error: 'Missing required data' });
         }
 
-        // Process images concurrently
+        // Process images concurrently with enhanced quality preservation
         const processedImages = await Promise.all(images.map(async (image) => {
             const imgSettings = settings[image.filename];
             const outputPath = path.join('output', `watermarked-${image.filename}`);
             
             try {
-                // Prepare watermark with exact pixel size from frontend
+                // Get original image metadata for precise processing
+                const originalMetadata = await sharp(path.join('uploads', image.filename)).metadata();
+                console.log('Original Image Metadata:', {
+                    width: originalMetadata.width,
+                    height: originalMetadata.height,
+                    format: originalMetadata.format,
+                    space: originalMetadata.space,
+                    channels: originalMetadata.channels,
+                    depth: originalMetadata.depth
+                });
+
+                // Prepare watermark with exact pixel size and high-quality settings
                 const watermarkBuffer = await sharp(path.join('uploads', watermark.filename))
-                    .resize(imgSettings.scaledSize)  // Use scaled size
                     .ensureAlpha()
+                    .resize(imgSettings.scaledSize)  // Use scaled size
                     .composite([{
                         input: Buffer.from([255, 255, 255, Math.round(imgSettings.opacity * 255)]),
                         raw: {
@@ -91,18 +108,24 @@ app.post('/process-images', async (req, res) => {
                     }])
                     .toBuffer();
 
-                // Apply watermark using scaled coordinates
+                // Process image with preservation of original quality and metadata
                 await sharp(path.join('uploads', image.filename))
                     .composite([{
                         input: watermarkBuffer,
                         left: Math.round(imgSettings.scaledX),
                         top: Math.round(imgSettings.scaledY)
                     }])
+                    .withMetadata() // Preserve original image metadata
+                    .toFormat(originalMetadata.format, {
+                        ...(originalMetadata.format === 'jpeg' ? { quality: 100 } : {}),
+                        ...(originalMetadata.format === 'png' ? { compressionLevel: 0 } : {}),
+                        ...(originalMetadata.format === 'webp' ? { quality: 100 } : {})
+                    })
                     .toFile(outputPath);
 
                 return outputPath;
             } catch (error) {
-                console.error(`Error processing image ${image.filename}:`, error);
+                console.error(`Detailed error processing image ${image.filename}:`, error);
                 return null;
             }
         }));
